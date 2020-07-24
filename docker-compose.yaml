@@ -1,0 +1,57 @@
+version: '3.3'
+services:
+  db:
+    container_name: db
+    image: mariadb:10.5.4
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: wordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+    networks:
+      - wp-network
+
+  wordpress:
+    depends_on:
+      - db
+    container_name: wordpress
+    image: wordpress:php7.2-fpm
+    volumes:
+      - wp_data:/var/www/html
+    restart: unless-stopped
+    environment:
+      WORDPRESS_DB_HOST: "db:3306"
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+      WORDPRESS_DB_NAME: wordpress
+    networks:
+      - wp-network
+
+  webserver:
+    depends_on:
+      - wordpress
+    container_name: webserver
+    image: nginx:stable
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - wp_data:/var/www/html
+      - ./nginx-conf:/etc/nginx/conf.d
+    networks:
+      - wp-network
+
+volumes:
+  db_data:
+  wp_data:
+    driver_opts:
+      type: none
+      device: /mnt/efs/wp
+      o: bind
+
+networks:
+  wp-network:
+    driver: bridge
